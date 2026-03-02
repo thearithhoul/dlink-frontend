@@ -5,6 +5,7 @@ import SignInPage from '@/views/SignInPage.vue'
 import AuthCallbackPage from '@/views/AuthCallbackPage.vue'
 import NewLinkPage from '@/views/NewLinkPage.vue'
 import SetSubdomainPage from '@/views/SetSubdomainPage.vue'
+import ShortLinkInfoPage from '@/views/ShortLinkInfoPage.vue'
 import { hasAccessToken } from '@/api/http'
 
 const router = createRouter({
@@ -34,6 +35,11 @@ const router = createRouter({
       path: '/links/new',
       name: 'new-link',
       component: NewLinkPage,
+    },
+    {
+      path: '/links/:id',
+      name: 'short-link-info',
+      component: ShortLinkInfoPage,
     },
     {
       path: '/subdomain',

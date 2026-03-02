@@ -1,116 +1,56 @@
 <script setup lang="ts">
+import { oauthCallback } from '@/api/auth'
+import { setAccessToken, setRefreshToken } from '@/api/http'
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import axios from 'axios'
-
-import { exchangeGoogleCallbackCode, getCurrentUser } from '@/api/auth'
-import { setAccessToken, setRefreshToken } from '@/api/http'
 
 const route = useRoute()
 const router = useRouter()
 
-const isLoading = ref(true)
-const errorMessage = ref('')
-
-const normalizeValue = (value: unknown): string | null => {
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      if (typeof item === 'string') {
-        const trimmed = item.trim()
-
-        if (trimmed) {
-          return trimmed
-        }
-      }
-    }
-
-    return null
-  }
-
-  if (typeof value !== 'string') {
-    return null
-  }
-
-  const trimmed = value.trim()
-  return trimmed || null
+function getQueryString(value:unknown): string | null {
+  if (Array.isArray(value)) return typeof value[0] === "string" ? value[0] : null
+  return typeof value === "string" && value.trim() ? value : null
 }
 
-const readHashParam = (key: string): string | null => {
-  if (typeof window === 'undefined') {
-    return null
-  }
+const isLoading = ref(false)
+const errorMessage = ref("")
 
-  const hashValue = window.location.hash.startsWith('#')
-    ? window.location.hash.slice(1)
-    : window.location.hash
 
-  if (!hashValue) {
-    return null
-  }
 
-  const hashParams = new URLSearchParams(hashValue)
-  return normalizeValue(hashParams.get(key))
-}
+onMounted(async ()=> {
+  isLoading.value = true
+  errorMessage.value = ""
+  const code = getQueryString(route.query.code)
 
-const toUiError = (error: unknown) => {
-  if (axios.isAxiosError(error)) {
-    const responseMessage =
-      (typeof error.response?.data?.detail === 'string' && error.response.data.detail.trim()) ||
-      (typeof error.response?.data?.message === 'string' && error.response.data.message.trim())
-
-    if (responseMessage) {
-      return responseMessage
-    }
-  }
-
-  if (error instanceof Error && error.message.trim()) {
-    return error.message
-  }
-
-  return 'Unable to complete sign-in callback.'
-}
-
-onMounted(async () => {
-  const backendError =
-    normalizeValue(route.query.error_description) ??
-    normalizeValue(route.query.error) ??
-    readHashParam('error_description') ??
-    readHashParam('error')
-
-  if (backendError) {
-    errorMessage.value = `Sign-in failed: ${backendError}`
-    isLoading.value = false
-    return
-  }
-
-  const code = normalizeValue(route.query.code) ?? readHashParam('code')
-  const state = normalizeValue(route.query.state) ?? readHashParam('state')
-
-  if (!code) {
-    errorMessage.value = 'Missing OAuth code in callback URL.'
+  if (code == null) {
+    errorMessage.value = "Missing OAuth code in callback URL."
     isLoading.value = false
     return
   }
 
   try {
-    const tokenPayload = await exchangeGoogleCallbackCode({ code, state })
-    setAccessToken(tokenPayload.access_token)
-    if (typeof tokenPayload.refresh_token === 'string' && tokenPayload.refresh_token.trim()) {
-      setRefreshToken(tokenPayload.refresh_token)
+    const token = await oauthCallback({ code })
+    if (!token?.access_token) {
+      throw new Error("Access token is missing in callback response.")
     }
-    const user = await getCurrentUser()
 
-    if (user.domain == null) {
-      await router.replace({ name: 'set-subdomain' })
+    setAccessToken(token.access_token)
+
+    if (typeof token.refresh_token === "string" && token.refresh_token.trim()) {
+      setRefreshToken(token.refresh_token)
+    }
+
+    if (token.user?.domain) {
+      await router.replace({ name: "dashboard" })
     } else {
-      await router.replace({ name: 'dashboard' })
+      await router.replace({ name: "set-subdomain" })
     }
-
   } catch (error) {
-    errorMessage.value = toUiError(error)
+    errorMessage.value = error instanceof Error ? error.message : "Unable to complete sign-in callback."
     isLoading.value = false
   }
 })
+
 </script>
 
 <template>

@@ -1,3 +1,13 @@
+
+
+export interface AuthorizationResponse {
+    authorization_url: string
+}
+
+export interface CallbackRequest{
+    code: string
+}
+
 export interface TokenUserModel {
   id: string
   email: string
@@ -20,4 +30,8 @@ export interface TokenModel {
   token_type: string
   expires_in: number
   user: TokenUserModel
+}
+
+export interface AddUserDomainRequest{
+    domain:string
 }

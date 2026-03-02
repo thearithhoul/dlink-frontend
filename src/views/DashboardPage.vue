@@ -1,36 +1,61 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { clearAccessToken } from '@/api/http'
-import { getShortLinks } from '@/api/short_link'
-import { ref, onMounted } from 'vue'
-import type { ShortLinks } from '@/api/model/short_links_model'
+import { clearAuthTokens } from '@/api/http'
+import { onMounted , ref} from 'vue'
 import { getCurrentUser } from '@/api/auth'
-import type { TokenUserModel } from '@/api/model/token_model'
+import { deleteShortLink, getShortLinks } from '@/api/short_link'
+import type { ShortLink } from '@/api/model/short_links_model'
+import type { TokenUserModel } from '@/api/model/auth_model'
 
 
 const router = useRouter()
 
 const logout = async () => {
-  clearAccessToken()
+  clearAuthTokens()
   await router.push({ name: 'landing' })
 }
-const shortLinks = ref<ShortLinks[]>([])
+
+
+
+const shortLinks = ref<ShortLink[]>([])
+const deletingLinkId = ref<string | null>(null)
+const user = ref<TokenUserModel | null>(null)
 const isShortLinksLoading = ref(false)
 const shortLinksError = ref('')
-const user = ref<TokenUserModel | null>(null)
+const isUserLoading = ref(false)
+const userError = ref('')
+const baseDomain = import.meta.env.VITE_PUBLIC_BASE_DOMAIN || 'dlink.local'
 
-const getShortLink = async () => {
+
+const toUiError = (error: unknown, fallback: string) =>
+  error instanceof Error && error.message.trim() ? error.message : fallback
+
+const loadShortLinks = async () => {
   isShortLinksLoading.value = true
   shortLinksError.value = ''
 
   try {
     shortLinks.value = await getShortLinks(100, 1)
   } catch (error) {
-    shortLinksError.value = error instanceof Error ? error.message : 'Failed to load links.'
+    shortLinksError.value = toUiError(error, 'Failed to load links.')
   } finally {
     isShortLinksLoading.value = false
   }
 }
+
+const loadCurrentUser = async () => {
+  isUserLoading.value = true
+  userError.value = ''
+
+  try {
+    user.value = await getCurrentUser()
+  } catch (error) {
+    userError.value = toUiError(error, 'Failed to load your profile.')
+  } finally {
+    isUserLoading.value = false
+  }
+}
+
 
 const formatDateTime = (value: string | null) => {
   if (!value) {
@@ -47,19 +72,44 @@ const formatDateTime = (value: string | null) => {
 }
 
 const toShortCodeUrl = (code: string) => {
-  const domain = user.value?.domain
+  const domain = user.value?.domain?.trim()
 
-  if (!domain) {
-    return '#'
+  if (domain) {
+    return `https://${domain}.damnaphchab.ink/${code}`
   }
 
-  return `https://${domain}.damnaphchab.ink/${code}`
+  return code
 }
 
-onMounted(async () => {
-  void getShortLink()
-  user.value = await getCurrentUser()
+const removeShortLink = async (id: string) => {
+  const normalizedId = id.trim()
+  if (!normalizedId || deletingLinkId.value != null) {
+    return
+  }
+
+  const confirmed = window.confirm('Delete this short link? This action cannot be undone.')
+  if (!confirmed) {
+    return
+  }
+
+  deletingLinkId.value = normalizedId
+  shortLinksError.value = ''
+
+  try {
+    await deleteShortLink({ id: normalizedId })
+    shortLinks.value = shortLinks.value.filter((link) => link.id !== normalizedId)
+  } catch (error) {
+    shortLinksError.value = toUiError(error, 'Failed to delete short link.')
+  } finally {
+    deletingLinkId.value = null
+  }
+}
+
+onMounted(() => {
+  void loadCurrentUser()
+  void loadShortLinks()
 })
+
 </script>
 
 <template>
@@ -83,12 +133,13 @@ onMounted(async () => {
           >
             New Link
           </RouterLink>
-          <RouterLink
+          <!-- <RouterLink
+            v-if="!user?.domain"
             to="/subdomain"
             class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:text-slate-900"
           >
             Subdomain
-          </RouterLink>
+          </RouterLink> -->
           <button
             class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:text-slate-900"
             type="button"
@@ -122,6 +173,14 @@ onMounted(async () => {
           <p class="mt-2 text-3xl font-semibold tracking-tight">4.8%</p>
           <p class="mt-2 text-xs text-emerald-600">+0.6% from last week</p>
         </article>
+      </section>
+
+      <section class="mt-6">
+        <p v-if="isUserLoading" class="text-sm text-slate-600">Loading profile...</p>
+        <p v-else-if="userError" class="text-sm text-red-600">{{ userError }}</p>
+        <p v-else-if="user?.domain" class="text-sm text-slate-600">
+          Your Short Link Domain <span class="font-medium text-slate-900">{{ user.domain }}.{{ baseDomain }}</span>
+        </p>
       </section>
 
       <section class="mt-8 grid gap-6 lg:grid-cols-[1.7fr_1fr]">
@@ -160,6 +219,20 @@ onMounted(async () => {
                 <p class="text-xs text-slate-500">
                   Expires: {{ formatDateTime(shortLink.expire_at) }}
                 </p>
+                <RouterLink
+                  :to="{ name: 'short-link-info', params: { id: shortLink.id } }"
+                  class="mt-1 inline-block text-xs font-medium text-slate-700 hover:text-slate-900 hover:underline"
+                >
+                  View
+                </RouterLink>
+                <button
+                  type="button"
+                  class="mt-1 ml-3 inline-block text-xs font-medium text-red-600 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  :disabled="deletingLinkId === shortLink.id"
+                  @click="removeShortLink(shortLink.id)"
+                >
+                  {{ deletingLinkId === shortLink.id ? 'Deleting...' : 'Delete' }}
+                </button>
               </div>
             </li>
           </ul>

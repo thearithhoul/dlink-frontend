@@ -7,7 +7,7 @@ const isSignedIn = hasAccessToken()
 <template>
   <div class="min-h-screen bg-slate-50 text-slate-900">
     <header class="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6">
-      <a class="text-xl font-semibold tracking-tight" href="/">Dlink</a>
+      <a class="text-xl font-semibold tracking-tight" href="/">តំណភ្ចាប់</a>
       <div class="flex items-center gap-3">
         <!-- <RouterLink
           to="/dashboard"
@@ -48,18 +48,18 @@ const isSignedIn = hasAccessToken()
           >
             {{ isSignedIn ? 'Open Dashboard' : 'Get Started' }}
           </RouterLink>
-          <RouterLink
+          <!-- <RouterLink
             v-if="!isSignedIn"
             to="/dashboard"
             class="rounded-md border border-slate-300 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:text-slate-900"
           >
             View Dashboard
-          </RouterLink>
+          </RouterLink> -->
         </div>
       </section>
 
       <section id="features" class="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <h2 class="text-lg font-semibold">Why Dlink</h2>
+        <h2 class="text-lg font-semibold">Why Damna-Phchab</h2>
         <ul class="mt-6 space-y-4 text-sm text-slate-600">
           <li class="rounded-md bg-slate-50 px-4 py-3">Fast setup with a single profile link.</li>
           <li class="rounded-md bg-slate-50 px-4 py-3">Easy sharing for social platforms and messages.</li>

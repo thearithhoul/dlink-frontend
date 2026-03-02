@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { getGoogleAuthorizationUrl } from '@/api/auth'
-import { clearAccessToken } from '@/api/http'
+import { clearAuthTokens } from '@/api/http'
+import { oauthAuthorize } from '@/api/auth'
 
 const isLoading = ref(false)
 const errorMessage = ref('')
@@ -11,11 +11,26 @@ const signInWithGoogle = async () => {
   errorMessage.value = ''
 
   try {
-    clearAccessToken()
-    const authorizationUrl = await getGoogleAuthorizationUrl()
+    clearAuthTokens()
+    const data = await oauthAuthorize()
+    const authorizationUrl = data?.authorization_url?.trim()
+
+    if (!authorizationUrl) {
+      throw new Error('Authorization URL is missing from backend response.')
+    }
+
+    try {
+      new URL(authorizationUrl)
+    } catch {
+      throw new Error('Authorization URL is invalid.')
+    }
+
     window.location.assign(authorizationUrl)
-  } catch {
-    errorMessage.value = 'Unable to start Google sign-in. Please try again.'
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error && error.message.trim()
+        ? error.message
+        : 'Unable to start Google sign-in. Please try again.'
   } finally {
     isLoading.value = false
   }

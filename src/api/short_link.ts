@@ -1,30 +1,105 @@
-import http from '@/api/http'
-import type { ApiResponse } from '@/api/model/api_response'
-import type { ShortLinks ,CreateShortLinkPayload } from '@/api/model/short_links_model'
+import { ApiError, requestApi } from "./http"
+import type {
+  CreateShortLinkPayload,
+  DeleteShortLinkParams,
+  ShortLink,
+} from "./model/short_links_model"
 
 
 
-export const getShortLinks = async (limit: number, page: number): Promise<ShortLinks[]> => {
-  const { data } = await http.get<ApiResponse<ShortLinks[]>>('/v1/links', {
-    params: {
-      limit,
-      page,
-    },
-  })
+export async function getShortLink(limit: number = 20, page: number = 1): Promise<ShortLink[]> {
+    const shortLinksPath = "/links/"
 
-  if (!data.success) {
-    throw new Error(data.message || 'Failed to fetch short links')
+  try {
+    const data = await requestApi<ShortLink[]>({
+      url: shortLinksPath,
+      method: "GET",
+      params: { limit, page },
+    })
+
+    return data ?? []
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw new Error(error.message)
+    }
+
+    throw error
   }
-
-  return data.data
 }
 
-export const createShortLink = async (payload: CreateShortLinkPayload): Promise<ShortLinks> => {
-  const { data } = await http.post<ApiResponse<ShortLinks>>('/v1/links/add', payload)
+export async function createShortLink(payload: CreateShortLinkPayload): Promise<ShortLink> {
 
-  if (!data.success) {
-    throw new Error(data.message || 'Failed to create short link')
+  const addshortLinksPath = "/links/add"
+  try {
+    const data = await requestApi<ShortLink>({
+      method: "POST",
+      url: addshortLinksPath,
+      data: payload,
+    })
+
+    if (!data) {
+      throw new Error("Empty response from create short link API.")
+    }
+
+    return data
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw new Error(error.message)
+    }
+
+    throw error
+  }
+}
+
+export async function getShortLinkById(id: string): Promise<ShortLink> {
+  const normalizedId = id.trim()
+  const shortLinkInfo = "/links/info/"
+  if (!normalizedId) {
+    throw new Error("Short link id is required.")
   }
 
-  return data.data
+  try {
+    const data = await requestApi<ShortLink>({
+      method: "GET",
+      url: shortLinkInfo + id ,
+     
+    })
+
+    if (!data) {
+      throw new Error("Short link not found.")
+    }
+
+    return data
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw new Error(error.message)
+    }
+
+    throw error
+  }
 }
+
+export async function deleteShortLink(payload: DeleteShortLinkParams): Promise<void> {
+  const id = payload.id.trim()
+  const shortLinkDelectPath = "/links/delect"
+
+  if (!id) {
+    throw new Error("Short link id is required.")
+  }
+
+  try {
+    await requestApi<unknown>({
+      method: "POST",
+      url: shortLinkDelectPath,
+      data:payload
+    })
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw new Error(error.message)
+    }
+
+    throw error
+  }
+}
+
+export const getShortLinks = getShortLink
