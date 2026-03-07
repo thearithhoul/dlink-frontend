@@ -6,6 +6,7 @@ import AuthCallbackPage from '@/views/AuthCallbackPage.vue'
 import NewLinkPage from '@/views/NewLinkPage.vue'
 import SetSubdomainPage from '@/views/SetSubdomainPage.vue'
 import ShortLinkInfoPage from '@/views/ShortLinkInfoPage.vue'
+import ShortLinkLoadingPage from '@/views/ShortLinkLoadingPage.vue'
 import { hasAccessToken } from '@/api/http'
 
 const router = createRouter({
@@ -45,6 +46,11 @@ const router = createRouter({
       path: '/subdomain',
       name: 'set-subdomain',
       component: SetSubdomainPage,
+    },
+    {
+      path: '/:code',
+      name: 'short-link-loading',
+      component: ShortLinkLoadingPage,
     },
   ],
 })

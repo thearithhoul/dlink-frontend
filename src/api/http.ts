@@ -128,7 +128,7 @@ const parseRefreshTokenPayload = (payload: unknown): RefreshTokenPayload | null 
   }
 }
 
-const baseURL = (import.meta.env.VITE_API_BASE_URL ?? "").trim() || "http://localhost:8000/api/v1"
+const baseURL = (import.meta.env.VITE_API_BASE_URL ?? "").trim() || "/api/v1"
 
 export const instance = axios.create(
   {

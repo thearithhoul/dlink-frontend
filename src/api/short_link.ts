@@ -2,10 +2,34 @@ import { ApiError, requestApi } from "./http"
 import type {
   CreateShortLinkPayload,
   DeleteShortLinkParams,
+  RedirectLink,
   ShortLink,
 } from "./model/short_links_model"
 
 
+export async function redirectLink(code: string, domain: string): Promise<RedirectLink> {
+  const shortLinksPath = "/dlink"
+
+  try {
+    const data = await requestApi<RedirectLink>({
+      url: shortLinksPath,
+      method: "GET",
+      headers: { "X-Skip-Auth": "true" },
+      params: { "code": code, "subdomain": domain },
+    })
+    if (!data) {
+      throw new Error("Empty response from redirect link API.")
+    }
+
+    return data
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw new Error(error.message)
+    }
+
+    throw error
+  }
+}
 
 export async function getShortLink(limit: number = 20, page: number = 1): Promise<ShortLink[]> {
     const shortLinksPath = "/links/"

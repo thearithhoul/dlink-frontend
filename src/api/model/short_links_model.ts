@@ -13,7 +13,9 @@ export interface ShortLink {
   create_at: string
 }
 
-
+export interface RedirectLink{
+  redirect_link: string
+}
 
 
 export interface CreateShortLinkPayload {
